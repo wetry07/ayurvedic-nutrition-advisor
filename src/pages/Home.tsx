@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { db } from "@/lib/firebase";
 import { ref, push } from "firebase/database";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileTab from "@/components/ProfileTab";
+import AssessmentQuestion from "@/components/AssessmentQuestion";
 
 const questions = [
   {
@@ -141,6 +139,12 @@ export default function Home() {
     }
   };
 
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
+  };
+
   const submitAnswers = async () => {
     try {
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
@@ -160,7 +164,6 @@ export default function Home() {
 
       const data = await response.json();
       
-      // Store results in Firebase
       await push(ref(db, `results/${currentUser?.uid}`), {
         answers,
         recommendations: data.candidates[0].content.parts[0].text,
@@ -172,7 +175,6 @@ export default function Home() {
         description: "Your Ayurvedic profile has been analyzed successfully!",
       });
       
-      // Reset for next assessment
       setCurrentQuestion(0);
       setAnswers({});
     } catch (error) {
@@ -201,22 +203,13 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               {currentQuestion < questions.length ? (
-                <div className="space-y-6">
-                  <h3 className="text-lg font-medium">
-                    {questions[currentQuestion].question}
-                  </h3>
-                  <RadioGroup
-                    onValueChange={handleAnswer}
-                    value={answers[currentQuestion]}
-                  >
-                    {questions[currentQuestion].options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <RadioGroupItem value={option} id={`option-${index}`} />
-                        <Label htmlFor={`option-${index}`}>{option}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
+                <AssessmentQuestion
+                  question={questions[currentQuestion]}
+                  currentAnswer={answers[currentQuestion] || ''}
+                  onAnswer={handleAnswer}
+                  onPrevious={handlePrevious}
+                  isFirstQuestion={currentQuestion === 0}
+                />
               ) : (
                 <div className="text-center">
                   <h3 className="text-lg font-medium">Thank you for completing the assessment!</h3>

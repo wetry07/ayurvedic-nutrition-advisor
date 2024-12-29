@@ -1,19 +1,22 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "@/lib/firebase";
+import { auth, db } from '../lib/firebase';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  User
+  User,
+  GoogleAuthProvider,
+  signInWithPopup
 } from "firebase/auth";
 import { ref, set, get } from "firebase/database";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from '../components/ui/use-toast';
 
 interface AuthContextType {
   currentUser: User | null;
   signup: (email: string, password: string, userData: UserData) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -70,6 +73,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function loginWithGoogle() {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({
+        title: "Logged in successfully!",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: (error as Error).message,
+      });
+      throw error;
+    }
+  }
+
   async function logout() {
     try {
       await signOut(auth);
@@ -99,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     currentUser,
     signup,
     login,
+    loginWithGoogle,
     logout,
     loading
   };

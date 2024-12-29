@@ -1,8 +1,9 @@
-import { useAuth } from "@/contexts/AuthContext";
-import { db } from "@/lib/firebase";
+import { useAuth } from '../contexts/AuthContext';
+import JSONPretty from 'react-json-pretty';
+import { db } from '../lib/firebase';
 import { ref, onValue } from "firebase/database";
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { PersonalDetailsType } from "./PersonalDetails";
 
 interface HistoryEntry {
@@ -12,9 +13,14 @@ interface HistoryEntry {
   timestamp: string;
 }
 
+import { Navigate } from 'react-router-dom';
+
 export default function ProfileTab() {
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const { currentUser } = useAuth();
+const { currentUser, logout } = useAuth();
+if (!currentUser) {
+  return <Navigate to="/auth" />;
+}
+const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -33,35 +39,53 @@ export default function ProfileTab() {
     return () => unsubscribe();
   }, [currentUser]);
 
-  return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Your Assessment History</h2>
-      {history.map((entry, index) => (
-        <Card key={index} className="overflow-hidden">
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              <span>Assessment from {new Date(entry.timestamp).toLocaleDateString()}</span>
-              <span className="text-sm font-normal text-muted-foreground">
-                {entry.personalDetails?.name}
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="prose max-w-none">
-              <div className="mb-4">
-                <h3 className="text-lg font-semibold mb-2">Personal Details</h3>
-                <p>Date of Birth: {new Date(entry.personalDetails?.dob).toLocaleDateString()}</p>
-                <p>Email: {entry.personalDetails?.email}</p>
-                <p>Phone: {entry.personalDetails?.phone}</p>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-2">Recommendations</h3>
-                <p className="whitespace-pre-wrap">{entry.recommendations}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
+return (
+  <div className="space-y-4">
+    <h2 className="text-2xl font-bold">AI Response</h2>
+    {history.map((entry, index) => (
+      <div key={index}>
+        <h3 className="text-lg font-semibold mb-2">Your Profile</h3>
+        <p>Dosha: {JSON.parse(entry.recommendations).Dosha}</p>
+        <p>Body Type: {JSON.parse(entry.recommendations).BodyType}</p>
+        <p>Skin Type: {JSON.parse(entry.recommendations).SkinType}</p>
+        <p>Climate: {JSON.parse(entry.recommendations).Climate}</p>
+        <p>Digestion: {JSON.parse(entry.recommendations).Digestion}</p>
+        <p>Energy Levels: {JSON.parse(entry.recommendations).EnergyLevels}</p>
+        <p>Mood: {JSON.parse(entry.recommendations).Mood}</p>
+        <p>Sleep: {JSON.parse(entry.recommendations).Sleep}</p>
+        <p>Hunger: {JSON.parse(entry.recommendations).Hunger}</p>
+        <p>Sweat: {JSON.parse(entry.recommendations).Sweat}</p>
+        <p>Fatigue: {JSON.parse(entry.recommendations).Fatigue}</p>
+        <p>Crowds/Noise: {JSON.parse(entry.recommendations).Crowds_Noise}</p>
+        <p>Season: {JSON.parse(entry.recommendations).Season}</p>
+        <h3 className="text-lg font-semibold mb-2">Recommendations</h3>
+        <h4 className="text-lg font-semibold mb-2">Diet</h4>
+        <ul>
+          {JSON.parse(entry.recommendations).Recommendations.Diet.map((diet, index) => (
+            <li key={index}>{diet}</li>
+          ))}
+        </ul>
+        <h4 className="text-lg font-semibold mb-2">Lifestyle</h4>
+        <ul>
+          {JSON.parse(entry.recommendations).Recommendations.Lifestyle.map((lifestyle, index) => (
+            <li key={index}>{lifestyle}</li>
+          ))}
+        </ul>
+        <h4 className="text-lg font-semibold mb-2">Herbs</h4>
+        <ul>
+          {JSON.parse(entry.recommendations).Recommendations.Herbs.map((herb, index) => (
+            <li key={index}>{herb}</li>
+          ))}
+        </ul>
+        <h4 className="text-lg font-semibold mb-2">Other Recommendations</h4>
+        <ul>
+          {JSON.parse(entry.recommendations).Recommendations.OtherRecommendations.map((other, index) => (
+            <li key={index}>{other}</li>
+          ))}
+        </ul>
+      </div>
+    ))}
+    <button onClick={() => logout()}>Logout</button>
+  </div>
+);
 }

@@ -1,6 +1,6 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Button } from '../components/ui/button';
 
 interface PersonalDetailsProps {
   onComplete: (details: PersonalDetailsType) => void;
@@ -9,7 +9,8 @@ interface PersonalDetailsProps {
 export interface PersonalDetailsType {
   name: string;
   dob: string;
-  email: string;
+  birthPlace: string;
+  currentLocation: string;
   phone: string;
 }
 
@@ -17,12 +18,13 @@ export default function PersonalDetails({ onComplete }: PersonalDetailsProps) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const details = {
-      name: formData.get('name') as string,
-      dob: formData.get('dob') as string,
-      email: formData.get('email') as string,
-      phone: formData.get('phone') as string,
-    };
+const details = {
+  name: formData.get('name') as string,
+  dob: formData.get('dob') as string,
+  birthPlace: formData.get('birthPlace') as string,
+  currentLocation: formData.get('currentLocation') as string,
+  phone: formData.get('phone') as string,
+};
     onComplete(details);
   };
 
@@ -40,19 +42,18 @@ export default function PersonalDetails({ onComplete }: PersonalDetailsProps) {
         </div>
         
         <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" required placeholder="Enter your email" />
-        </div>
-        
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Phone Number</Label>
-          <Input id="phone" name="phone" type="tel" required placeholder="Enter your phone number" />
-        </div>
-      </div>
-      
-      <Button type="submit" className="w-full">
-        Continue to Assessment
-      </Button>
-    </form>
+          <Label htmlFor="birthPlace">Place of Birth</Label>
+          <Input id="birthPlace" name="birthPlace" required placeholder="Enter your place of birth" />
+<div className="grid gap-2">
+  <Label htmlFor="currentLocation">Current Location</Label>
+  <Input id="currentLocation" name="currentLocation" required placeholder="Enter your current location" />
+</div>
+
+</div>
+</div>
+<Button type="submit" className="w-full">
+  Continue to Assessment
+</Button>
+</form>
   );
 }

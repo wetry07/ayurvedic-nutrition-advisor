@@ -125,11 +125,12 @@ const questions = [
 ];
 
 export default function Home() {
-  const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 for personal details
+  const [currentQuestion, setCurrentQuestion] = useState(-1);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [personalDetails, setPersonalDetails] = useState<PersonalDetailsType | null>(null);
   const [recommendations, setRecommendations] = useState<string>("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -138,13 +139,11 @@ export default function Home() {
     setCurrentQuestion(0);
   };
 
-  const handleAnswer = async (answer: string) => {
+  const handleAnswer = (answer: string) => {
     setAnswers({ ...answers, [currentQuestion]: answer });
     
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
-    } else {
-      await submitAnswers();
     }
   };
 
@@ -152,11 +151,12 @@ export default function Home() {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
     } else if (currentQuestion === 0) {
-      setCurrentQuestion(-1); // Go back to personal details
+      setCurrentQuestion(-1);
     }
   };
 
   const submitAnswers = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyApY33HNc2TrZqZm5s4Piv4UEi09QzjEzo", {
         method: "POST",
@@ -173,8 +173,7 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || 'Failed to get recommendations');
+        throw new Error('Failed to get recommendations');
       }
 
       const data = await response.json();
@@ -205,6 +204,8 @@ export default function Home() {
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to analyze results. Please try again.",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -215,6 +216,7 @@ export default function Home() {
           personalDetails={personalDetails!}
           answers={answers}
           recommendations={recommendations}
+          isLoading={isLoading}
         />
       );
     }
@@ -229,7 +231,10 @@ export default function Home() {
         currentAnswer={answers[currentQuestion] || ''}
         onAnswer={handleAnswer}
         onPrevious={handlePrevious}
+        onSubmit={submitAnswers}
         isFirstQuestion={currentQuestion === 0}
+        isLastQuestion={currentQuestion === questions.length - 1}
+        isLoading={isLoading}
       />
     );
   };

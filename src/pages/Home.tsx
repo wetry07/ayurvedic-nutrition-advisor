@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/lib/firebase";
 import { ref, push } from "firebase/database";
-import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProfileTab from "@/components/ProfileTab";
 import AssessmentQuestion from "@/components/AssessmentQuestion";
+import PersonalDetails, { PersonalDetailsType } from "@/components/PersonalDetails";
+import Results from "@/components/Results";
 
 const questions = [
   {
@@ -124,10 +125,18 @@ const questions = [
 ];
 
 export default function Home() {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(-1); // -1 for personal details
   const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [personalDetails, setPersonalDetails] = useState<PersonalDetailsType | null>(null);
+  const [recommendations, setRecommendations] = useState<string>("");
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { currentUser } = useAuth();
   const { toast } = useToast();
+
+  const handlePersonalDetailsComplete = (details: PersonalDetailsType) => {
+    setPersonalDetails(details);
+    setCurrentQuestion(0);
+  };
 
   const handleAnswer = async (answer: string) => {
     setAnswers({ ...answers, [currentQuestion]: answer });
@@ -135,13 +144,15 @@ export default function Home() {
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      submitAnswers();
+      await submitAnswers();
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(currentQuestion - 1);
+    } else if (currentQuestion === 0) {
+      setCurrentQuestion(-1); // Go back to personal details
     }
   };
 
@@ -172,19 +183,21 @@ export default function Home() {
         throw new Error('Invalid response format from Gemini API');
       }
 
+      const recommendationsText = data.candidates[0].content.parts[0].text;
+      setRecommendations(recommendationsText);
+
       await push(ref(db, `results/${currentUser?.uid}`), {
+        personalDetails,
         answers,
-        recommendations: data.candidates[0].content.parts[0].text,
+        recommendations: recommendationsText,
         timestamp: new Date().toISOString()
       });
 
+      setIsSubmitted(true);
       toast({
         title: "Analysis Complete",
         description: "Your Ayurvedic profile has been analyzed successfully!",
       });
-      
-      setCurrentQuestion(0);
-      setAnswers({});
     } catch (error) {
       console.error('Error:', error);
       toast({
@@ -193,6 +206,32 @@ export default function Home() {
         description: error instanceof Error ? error.message : "Failed to analyze results. Please try again.",
       });
     }
+  };
+
+  const renderAssessmentContent = () => {
+    if (isSubmitted) {
+      return (
+        <Results 
+          personalDetails={personalDetails!}
+          answers={answers}
+          recommendations={recommendations}
+        />
+      );
+    }
+
+    if (currentQuestion === -1) {
+      return <PersonalDetails onComplete={handlePersonalDetailsComplete} />;
+    }
+
+    return (
+      <AssessmentQuestion
+        question={questions[currentQuestion]}
+        currentAnswer={answers[currentQuestion] || ''}
+        onAnswer={handleAnswer}
+        onPrevious={handlePrevious}
+        isFirstQuestion={currentQuestion === 0}
+      />
+    );
   };
 
   return (
@@ -204,31 +243,7 @@ export default function Home() {
         </TabsList>
         
         <TabsContent value="assessment">
-          <Card className="mt-4">
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">
-                Ayurvedic Health Assessment
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentQuestion < questions.length ? (
-                <AssessmentQuestion
-                  question={questions[currentQuestion]}
-                  currentAnswer={answers[currentQuestion] || ''}
-                  onAnswer={handleAnswer}
-                  onPrevious={handlePrevious}
-                  isFirstQuestion={currentQuestion === 0}
-                />
-              ) : (
-                <div className="text-center">
-                  <h3 className="text-lg font-medium">Thank you for completing the assessment!</h3>
-                  <p className="text-muted-foreground mt-2">
-                    Your results are being analyzed.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {renderAssessmentContent()}
         </TabsContent>
         
         <TabsContent value="profile">

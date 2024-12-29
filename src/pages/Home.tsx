@@ -147,11 +147,10 @@ export default function Home() {
 
   const submitAnswers = async () => {
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyApY33HNc2TrZqZm5s4Piv4UEi09QzjEzo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer AIzaSyApY33HNc2TrZqZm5s4Piv4UEi09QzjEzo`,
         },
         body: JSON.stringify({
           contents: [{
@@ -162,8 +161,17 @@ export default function Home() {
         })
       });
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to get recommendations');
+      }
+
       const data = await response.json();
       
+      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Invalid response format from Gemini API');
+      }
+
       await push(ref(db, `results/${currentUser?.uid}`), {
         answers,
         recommendations: data.candidates[0].content.parts[0].text,
@@ -178,10 +186,11 @@ export default function Home() {
       setCurrentQuestion(0);
       setAnswers({});
     } catch (error) {
+      console.error('Error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to analyze results. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to analyze results. Please try again.",
       });
     }
   };
